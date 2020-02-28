@@ -61,41 +61,42 @@ ORDER BY id ASC;
 --SELECT id, value, "Cummulative Sum", value - lag AS step FROM cte;
 
 -- transition function NOTE arrays are 1 based
+-- we are using an 4 dim array as our state
+-- 1. the cummulative sum
+-- 2. the step (last non null value) - current value
+-- 3. the last non null value (or null until first non null value appears)
+-- 4. the running max step (or 0 until one appears)
 CREATE OR REPLACE FUNCTION our_custom_transition(state double precision[], value double precision)
         RETURNS double precision[] IMMUTABLE
         LANGUAGE plpgsql AS
 $$
-DECLARE
-        cummulative_sum double precision;
-        difference              double precision;
 BEGIN
-        IF value IS NULL THEN
-                cummulative_sum := state[1];
-                difference := state[3];
-        ELSE
-				IF state[3] IS NULL THEN
-					state[3] := value;
-				END IF;
-                cummulative_sum := state[1] + value;
-                difference :=  value - state[3];
-                state[3] := value;
-        END IF;
-
-		IF difference >= state[4] THEN
-			state[4] := difference;
+	IF value IS NULL THEN
+		state[2] := state[3];
+	ELSE
+		IF state[3] IS NULL THEN
+			state[3] := value;
 		END IF;
-        RETURN array[cummulative_sum, difference, state[3], state[4]];
+		state[1] := state[1] + value;
+		state[2] := value - state[3];
+		state[3] := value;
+	END IF;
+
+	IF state[2] >= state[4] THEN
+		state[4] := state[2];
+	END IF;
+
+	RETURN state;
 END;
 $$;
 
--- final function, i.e. pretty print
+-- final function, i.e. discard the 3rd element of the array which was for
+-- internal use only
 CREATE OR REPLACE FUNCTION our_custom_final(state double precision[])
         RETURNS double precision[] IMMUTABLE
-        LANGUAGE plpgsql AS
+        LANGUAGE sql AS
 $$
-BEGIN
-  RETURN array[state[1], state[2], state[4]];
-END;
+  SELECT array[state[1], state[2], state[4]];
 $$;
 
 -- This is the aggregate
