@@ -24,13 +24,13 @@ TABLE aggregate_test;
 
 -- use a window function to express a cummulative sum
 SELECT
-  id,
-  value,
-  sum(value) OVER (ORDER BY id ASC) AS "Cummulative Sum"
+	id,
+	value,
+	sum(value) OVER (ORDER BY id ASC) AS "Cummulative Sum"
 FROM
-        aggregate_test
+	aggregate_test
 ORDER BY
-        id
+   id
 ASC;
 
 -- great, and the step?
@@ -67,8 +67,8 @@ ORDER BY id ASC;
 -- 3. the last non null value (or null until first non null value appears)
 -- 4. the running max step (or 0 until one appears)
 CREATE OR REPLACE FUNCTION our_custom_transition(state double precision[], value double precision)
-        RETURNS double precision[] IMMUTABLE
-        LANGUAGE plpgsql AS
+	RETURNS double precision[] IMMUTABLE
+	LANGUAGE plpgsql AS
 $$
 BEGIN
 	IF value IS NULL THEN
