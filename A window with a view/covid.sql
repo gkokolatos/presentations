@@ -315,3 +315,46 @@ WHERE
 	date >= NOW() - INTERVAL '1 day'
 ;
 
+
+--
+-- List the top ten highest number of cases of a country, with their dates and
+-- cases, for countries that where present in the daily top five (or sweden,
+-- greece) within the last two weeks.
+--  OR
+--
+-- For countries that have been ranked in the daily top five the last two weeks
+-- (or Sweden, Greece), list their ten most cases days
+--
+WITH cte AS (
+	SELECT
+		date,
+		countries,
+		RANK() OVER (PARTITION BY date ORDER BY cases DESC) daily_comparative_rank,
+		RANK() OVER (PARTITION BY countries ORDER BY cases DESC) country_rank,
+		cases
+	FROM
+		covid
+)
+SELECT
+	*
+FROM
+	cte
+WHERE
+	countries IN (
+		SELECT
+			DISTINCT(countries)
+		FROM
+			cte
+		WHERE
+			cte.date >= NOW() - INTERVAL '2 weeks' AND
+			(
+				cte.daily_comparative_rank <= 5 OR
+				cte.countries IN ('Sweden', 'Greece')
+			)
+	) AND
+	country_rank <= 10
+ORDER BY
+	countries ASC,
+	country_rank ASC
+;
+
